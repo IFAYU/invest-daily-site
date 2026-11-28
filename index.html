@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Report</title><style>
+:root{--bg:#f6f5f2;--fg:#1f1d1a;--card:#fff;--line:#e7e2d8;--acc:#2563eb}
+@media (prefers-color-scheme:dark){:root{--bg:#121316;--fg:#ece9e3;--card:#1b1d22;--line:#2a2d34;--acc:#7aa7ff}}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);font:16px -apple-system,'Microsoft JhengHei',sans-serif}
+form{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;width:min(92vw,340px)}
+h1{font-size:18px;margin:0 0 14px}input,button{width:100%;font:inherit;padding:12px;border-radius:10px;border:1px solid var(--line);margin-top:10px;background:transparent;color:inherit}
+button{background:var(--acc);color:#fff;border:0}#m{color:#dc2626;font-size:13px;min-height:18px;margin-top:8px}</style></head>
+<body><form id="f" autocomplete="on"><h1>🔒 每日投資報告</h1>
+<input type="text" name="username" value="report" autocomplete="username" hidden>
+<input id="p" type="password" placeholder="密碼" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus>
+<label style="display:block;margin-top:8px;font-size:14px"><input id="sh" type="checkbox" style="width:auto;margin:0 6px 0 0">顯示密碼</label>
+<button id="b" type="submit">開啟</button><div id="m"></div><div id="v" style="font-size:12px;opacity:.6;margin-top:6px"></div></form>
+<script>
+var D=null;
+fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){D=d;document.getElementById('v').textContent='版本 '+d.b}).catch(function(){document.getElementById('m').textContent='載入失敗，請重新整理'});
+document.getElementById('sh').onchange=function(){document.getElementById('p').type=this.checked?'text':'password'};
+function u(b){return Uint8Array.from(atob(b),function(c){return c.charCodeAt(0)})}
+document.getElementById('f').onsubmit=async function(e){e.preventDefault();
+var m=document.getElementById('m'),b=document.getElementById('b');m.textContent='';
+if(!D){m.textContent='資料還在載入，請再按一次';return}
+b.disabled=true;b.textContent='解密中…';
+try{
+ var km=await crypto.subtle.importKey('raw',new TextEncoder().encode(document.getElementById('p').value.trim()),'PBKDF2',false,['deriveKey']);
+ var k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:u(D.s),iterations:D.n,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+ var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:u(D.i)},k,u(D.c));
+ var t=new TextDecoder().decode(pt);document.open();document.write(t);document.close();
+}catch(x){m.textContent=(window.crypto&&crypto.subtle)?'密碼不正確':'此瀏覽器不支援（需要 https）';b.disabled=false;b.textContent='開啟';}
+};
+</script></body></html>
